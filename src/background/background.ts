@@ -22,7 +22,7 @@ interface ExtensionSettings {
 // Default settings
 const DEFAULT_SETTINGS: ExtensionSettings = {
   apiKey: '',
-  backendUrl: 'http://localhost:3002/analyze',
+  backendUrl: 'https://ai-extension-ny8n.onrender.com/analyze',
   jpegQuality: 80,
   provider: 'groq',
   model: 'llava-v1.5-7b-4096-preview',
