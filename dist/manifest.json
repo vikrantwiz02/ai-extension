@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Color Analyzer",
+  "name": "AI Screenshot Assistant",
   "version": "1.0.0",
-  "description": "AI-powered color analysis with custom backend integration",
+  "description": "AI-powered screenshot analysis with custom backend integration",
   "permissions": [
     "activeTab",
     "storage",
@@ -26,7 +26,7 @@
   ],
   "options_page": "options.html",
   "action": {
-    "default_title": "Color Analyzer"
+    "default_title": "AI Screenshot Assistant"
   },
   "icons": {
     "16": "icons/icon16.svg",

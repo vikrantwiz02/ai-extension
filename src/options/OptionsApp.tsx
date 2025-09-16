@@ -11,17 +11,17 @@ interface ExtensionSettings {
 
 const DEFAULT_SETTINGS: ExtensionSettings = {
   apiKey: '',
-  backendUrl: 'https://ai-extension-ny8n.onrender.com/analyze',
+  backendUrl: 'http://localhost:3002/analyze',
   jpegQuality: 80,
   provider: 'gemini',
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-pro',
   ollamaBaseUrl: 'http://localhost:11434'
 };
 
 const AI_PROVIDERS = {
   gemini: {
     name: '🟢 Google Gemini (Multi-Key Support)',
-    models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'],
+    models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-2.5-pro'],
     needsApiKey: true,
     description: 'Google\'s multimodal AI - Use multiple API keys for increased quota (comma-separated)'
   },
