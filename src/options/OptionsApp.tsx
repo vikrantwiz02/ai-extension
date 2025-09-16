@@ -11,7 +11,7 @@ interface ExtensionSettings {
 
 const DEFAULT_SETTINGS: ExtensionSettings = {
   apiKey: '',
-  backendUrl: 'https://ai-extension-vikrantwiz02.vercel.app/api/analyze',
+  backendUrl: 'https://ai-extension-ny8n.onrender.com/analyze',
   jpegQuality: 80,
   provider: 'gemini',
   model: 'gemini-1.5-flash',
