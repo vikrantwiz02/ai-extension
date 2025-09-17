@@ -238,7 +238,7 @@ class AIProviders {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "llava-v1.5-7b-wrapper",
+        model: "sonar-pro",
         messages: [
           {
             role: "user",
@@ -711,7 +711,7 @@ app.get('/providers', (req, res) => {
       },
       perplexity: {
         name: 'Perplexity AI',
-        models: ['llava-v1.5-7b-wrapper'],
+        models: ['sonar-pro', 'sonar'],
         authType: 'API Key',
         endpoint: 'api.perplexity.ai',
         cost: 'Paid',
@@ -794,7 +794,7 @@ app.listen(port, () => {
   console.log('   ⚡ Groq (llava-v1.5-7b) - Lightning fast, generous free tier');
   console.log('   🤗 Hugging Face (llava-1.5-7b-hf) - Free tier available');
   console.log('   🔄 Replicate (llava-13b) - High quality, pay per use');
-  console.log('   🧠 Perplexity AI (llava-v1.5-7b-wrapper) - Research focused');
+  console.log('   🧠 Perplexity AI (sonar-pro) - Research focused');
   console.log('   🎭 Mistral Pixtral (pixtral-12b-2409) - European AI');
   console.log('   🟢 Google Gemini (gemini-1.5-flash/pro) - 50 free/day');
   console.log('   🟡 OpenAI GPT-4 Vision (gpt-4o) - Premium quality');

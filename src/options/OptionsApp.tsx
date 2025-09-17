@@ -45,7 +45,7 @@ const AI_PROVIDERS = {
   },
   perplexity: {
     name: '🧠 Perplexity AI',
-    models: ['llava-v1.5-7b-wrapper'],
+    models: ['sonar-pro', 'sonar'],
     needsApiKey: true,
     description: 'Research-focused AI with vision capabilities'
   },
