@@ -195,9 +195,17 @@ Format: CONFIDENCE: [X]% | RECOMMENDATION: [STATUS] | ANALYSIS: [details]`;
 // AI Provider Handlers
 class AIProviders {
   static async callDeepSeek(apiKey, imageBase64) {
-    // DeepSeek currently does not support vision/image analysis
-    // The API error shows it doesn't recognize image_url format
-    throw new Error('DeepSeek API does not currently support vision/image analysis. Please use a vision-capable provider like:\n• Groq (fast + generous free tier)\n• Gemini (50 requests/day free)\n• GPT-4 Vision (premium quality)\n• Claude (thoughtful analysis)\n\nYou can change the provider in the extension options.');
+    // DeepSeek's vision capabilities are still in development
+    // Their API format is different from OpenAI standard
+    throw new Error(`DeepSeek Vision is not yet available through their public API. 
+
+🔥 Try these excellent alternatives:
+• Groq (Fast + Free) - Great for quick answers
+• Gemini (50 free/day) - Google's reliable AI  
+• GPT-4o (Premium) - Highest accuracy
+• Claude (Premium) - Thoughtful analysis
+
+You can change the provider in extension options.`);
   }
 
   static async callGroq(apiKey, imageBase64) {
@@ -998,7 +1006,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     uptime: Math.floor((Date.now() - stats.startTime) / 1000) + 's',
-    supportedProviders: ['gemini', 'openai', 'claude', 'ollama']
+    supportedProviders: ['deepseek', 'groq', 'gemini', 'openai', 'claude', 'ollama']
   });
 });
 
@@ -1015,8 +1023,8 @@ app.get('/providers', (req, res) => {
   res.json({
     providers: {
       deepseek: {
-        name: 'DeepSeek Chat (Vision Capable)',
-        models: ['deepseek-chat'],
+        name: 'DeepSeek Vision (Affordable)',
+        models: ['deepseek-vl-7b-chat'],
         authType: 'API Key',
         endpoint: 'api.deepseek.com',
         cost: 'Very affordable',
@@ -1127,7 +1135,8 @@ app.listen(port, () => {
   console.log(`🔧 Providers: http://localhost:${port}/providers`);
   console.log(`🔑 Gemini Keys: http://localhost:${port}/gemini-keys`);
   console.log('');
-  console.log('🚀 Supported AI Providers (9 total):');
+  console.log('🚀 Supported AI Providers (10 total):');
+  console.log('   🔥 DeepSeek Vision (deepseek-vl-7b) - Very affordable, fast');
   console.log('   ⚡ Groq (llava-v1.5-7b) - Lightning fast, generous free tier');
   console.log('   🤗 Hugging Face (llava-1.5-7b-hf) - Free tier available');
   console.log('   🔄 Replicate (llava-13b) - High quality, pay per use');
@@ -1138,8 +1147,9 @@ app.listen(port, () => {
   console.log('   🔵 Anthropic Claude (claude-3-sonnet/opus) - Thoughtful analysis');
   console.log('   🟠 Ollama Local (llava/bakllava) - Free, runs locally');
   console.log('');
-  console.log('� Quick Start:');
-  console.log('   • Out of Gemini quota? Try Groq (super fast + generous free tier)');
+  console.log('💡 Quick Start:');
+  console.log('   • Most affordable? Try DeepSeek Vision (very cheap, good quality)');
+  console.log('   • Fastest free? Try Groq (super fast + generous free tier)');
   console.log('   • Want free unlimited? Try Ollama (runs on your computer)');
   console.log('   • Want best quality? Try GPT-4o or Claude');
   console.log('');

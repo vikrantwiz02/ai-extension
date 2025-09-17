@@ -19,6 +19,12 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
 };
 
 const AI_PROVIDERS = {
+  deepseek: {
+    name: '🔥 DeepSeek Vision (Coming Soon)',
+    models: ['deepseek-vl-7b-chat'],
+    needsApiKey: true,
+    description: 'Vision API in development - Use Groq, Gemini, or GPT-4o for now'
+  },
   gemini: {
     name: '🟢 Google Gemini (Multi-Key Support)',
     models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-2.5-pro'],
