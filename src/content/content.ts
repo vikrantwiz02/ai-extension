@@ -168,7 +168,7 @@ class AIAssistantDot {
 
     // Check extension context before processing
     if (!this.isExtensionContextValid()) {
-      this.showError(ExtensionHealth.getContextInvalidMessage());
+      this.showAnswer(ExtensionHealth.getContextInvalidMessage());
       return;
     }
 
@@ -180,17 +180,19 @@ class AIAssistantDot {
       const response = await this.sendScreenshotRequest();
       
       if (response.success && response.answer) {
-        this.showAnswer(response.answer);
+        // Clean the answer to show only final result
+        const cleanAnswer = this.extractFinalAnswer(response.answer);
+        this.showAnswer(cleanAnswer);
       } else {
-        this.showError(response.error || 'Unknown error occurred');
+        this.showAnswer('Error: ' + (response.error || 'Unknown error occurred'));
       }
     } catch (error) {
       console.error('Error in handleClick:', error);
       const errorMessage = (error as Error).message;
       if (errorMessage.includes('Extension has been reloaded') || errorMessage.includes('context invalidated')) {
-        this.showError(ExtensionHealth.getContextInvalidMessage());
+        this.showAnswer(ExtensionHealth.getContextInvalidMessage());
       } else {
-        this.showError('Failed to process request: ' + errorMessage);
+        this.showAnswer('Error: Failed to process request');
       }
     } finally {
       this.isProcessing = false;
@@ -201,7 +203,6 @@ class AIAssistantDot {
   private setLoadingState(): void {
     if (!this.dotElement) return;
 
-    // Keep original color and size - no visual changes
     this.dotElement.innerHTML = `
       <div style="
         width: 16px; 
@@ -229,10 +230,111 @@ class AIAssistantDot {
 
   private resetDotState(): void {
     if (!this.dotElement) return;
-
-    // Keep original styling - no changes to background or transform
     this.dotElement.innerHTML = '';
-    // No icon - keep it plain
+  }
+
+  private extractFinalAnswer(answer: string): string {
+    // Remove verbose explanations and keep only the final answer
+    let cleanAnswer = answer;
+
+    // Remove common AI verbose patterns
+    cleanAnswer = cleanAnswer.replace(/^(Let me analyze|Looking at|I can see|Based on|After analyzing).*?[\.\:]\s*/i, '');
+    cleanAnswer = cleanAnswer.replace(/^(ANALYSIS|FIRST PASS|SECOND PASS|THIRD PASS|FOURTH PASS|FINAL PASS).*?\n/gmi, '');
+    cleanAnswer = cleanAnswer.replace(/\[HIGH\]|\[MEDIUM\]|\[LOW\]/gi, '');
+    cleanAnswer = cleanAnswer.replace(/VERIFIED:\s*/i, '');
+    cleanAnswer = cleanAnswer.replace(/CONFIDENCE:\s*\d+%/gi, '');
+    cleanAnswer = cleanAnswer.replace(/Begin.*analysis.*:/i, '');
+    
+    // Extract just the answer portion
+    const lines = cleanAnswer.split('\n').filter(line => line.trim());
+    
+    // For MCQ questions, look for single letter answers
+    const mcqMatch = cleanAnswer.match(/^([A-E])\.?\s*$/m);
+    if (mcqMatch) {
+      return mcqMatch[1];
+    }
+    
+    // For numbered answers or calculations, get the most concise line
+    const answerLine = lines.find(line => 
+      /^(Answer|Result|Solution):\s*/i.test(line) ||
+      /^\d+\.?\s*[A-E]\.?\s*$/.test(line) ||
+      /^\d+(\.\d+)?$/.test(line.trim()) ||
+      /^[A-E]\.?\s*$/.test(line.trim())
+    );
+    
+    if (answerLine) {
+      return answerLine.replace(/^(Answer|Result|Solution):\s*/i, '').trim();
+    }
+    
+    // If no specific pattern found, return the first meaningful line
+    const meaningfulLine = lines.find(line => 
+      line.length < 100 && 
+      !line.includes('analyze') && 
+      !line.includes('looking') &&
+      !line.includes('protocol')
+    );
+    
+    return meaningfulLine || lines[0] || cleanAnswer.trim();
+  }
+
+  private showAnswer(answer: string): void {
+    this.hideAnswerBox();
+
+    // Get the current position of the dot
+    const dotRect = this.dotElement!.getBoundingClientRect();
+    
+    this.answerBox = document.createElement('div');
+    this.answerBox.id = 'ai-assistant-answer-box';
+    this.answerBox.style.cssText = `
+      position: fixed;
+      left: ${Math.min(dotRect.left, window.innerWidth - 300)}px;
+      top: ${dotRect.bottom + 10}px;
+      max-width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      line-height: 1.3;
+      color: #333;
+      z-index: 2147483646;
+      word-wrap: break-word;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(220, 220, 220, 0.8);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(10px);
+      animation: fadeIn 0.3s ease-out;
+      cursor: pointer;
+    `;
+
+    this.answerBox.textContent = answer;
+    
+    // Click to hide
+    this.answerBox.addEventListener('click', () => this.hideAnswerBox());
+
+    // Add animation keyframes
+    if (!document.getElementById('ai-assistant-animation-style')) {
+      const style = document.createElement('style');
+      style.id = 'ai-assistant-animation-style';
+      style.textContent = `
+        @keyframes fadeIn {
+          0% { 
+            opacity: 0; 
+            transform: translateY(-5px); 
+          }
+          100% { 
+            opacity: 1; 
+            transform: translateY(0); 
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(this.answerBox);
+
+    // Auto-hide after 10 seconds
+    setTimeout(() => this.hideAnswerBox(), 10000);
   }
 
   private sendScreenshotRequest(): Promise<ResponseMessage> {
@@ -268,68 +370,9 @@ class AIAssistantDot {
     });
   }
 
-  private showAnswer(answer: string): void {
-    this.hideAnswerBox();
 
-    // Get the current position of the dot
-    const dotRect = this.dotElement!.getBoundingClientRect();
-    
-    this.answerBox = document.createElement('div');
-    this.answerBox.id = 'ai-assistant-answer-box';
-    this.answerBox.style.cssText = `
-      position: fixed;
-      left: ${Math.min(dotRect.left, window.innerWidth - 300)}px;
-      top: ${dotRect.bottom + 10}px;
-      max-width: 280px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 10px;
-      line-height: 1.3;
-      color: #333;
-      z-index: 2147483646;
-      word-wrap: break-word;
-      background: rgba(0, 0, 0, 0);
-      border: none;
-      border-radius: 0;
-      padding: 4px 6px;
-      margin: 0;
-      box-shadow: none;
-      animation: fadeIn 0.3s ease-out;
-      cursor: pointer;
-    `;
 
-    this.answerBox.textContent = answer;
-    
-    // Click to hide
-    this.answerBox.addEventListener('click', () => this.hideAnswerBox());
 
-    // Add animation keyframes
-    if (!document.getElementById('ai-assistant-animation-style')) {
-      const style = document.createElement('style');
-      style.id = 'ai-assistant-animation-style';
-      style.textContent = `
-        @keyframes fadeIn {
-          0% { 
-            opacity: 0; 
-            transform: translateY(-5px); 
-          }
-          100% { 
-            opacity: 1; 
-            transform: translateY(0); 
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    document.body.appendChild(this.answerBox);
-
-    // Auto-hide after 10 seconds
-    setTimeout(() => this.hideAnswerBox(), 10000);
-  }
-
-  private showError(error: string): void {
-    this.showAnswer(`Error: ${error}`);
-  }
 
   private hideAnswerBox(): void {
     if (this.answerBox) {

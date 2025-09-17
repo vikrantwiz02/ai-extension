@@ -23,7 +23,7 @@ interface ExtensionSettings {
 const DEFAULT_SETTINGS: ExtensionSettings = {
   apiKey: '',
   backendUrl: 'http://localhost:3002/analyze',
-  jpegQuality: 80,
+  jpegQuality: 95,
   provider: 'groq',
   model: 'llava-v1.5-7b-4096-preview',
   ollamaBaseUrl: 'http://localhost:11434'
@@ -99,8 +99,7 @@ async function handleScreenshotCapture(tabId?: number): Promise<ResponseMessage>
     // Use chrome.tabs.captureVisibleTab with the current window
     const dataUrl = await new Promise<string>((resolve, reject) => {
       chrome.tabs.captureVisibleTab(activeTab.windowId, {
-        format: 'jpeg',
-        quality: settings.jpegQuality
+        format: 'png'  // PNG format for better text clarity
       }, (result) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
@@ -112,13 +111,13 @@ async function handleScreenshotCapture(tabId?: number): Promise<ResponseMessage>
       });
     });
 
-    // Convert data URL to base64 string (remove data:image/jpeg;base64, prefix)
+    // Convert data URL to base64 string (remove data:image/png;base64, prefix)
     const base64Image = dataUrl.split(',')[1];
 
     // Send to backend
     const requestBody: any = {
       image: base64Image,
-      format: 'jpeg',
+      format: 'png',
       provider: settings.provider,
       model: settings.model
     };

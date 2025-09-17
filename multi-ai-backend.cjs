@@ -114,6 +114,84 @@ class GeminiKeyRotator {
 
 const geminiRotator = new GeminiKeyRotator();
 
+// Enhanced prompts with verification system
+class PromptEngine {
+  static getEnhancedPrompt() {
+    return `You are an expert at reading text from screenshots and solving academic problems. This is a screenshot of a webpage or document containing questions.
+
+CRITICAL: READ ALL TEXT IN THE IMAGE FIRST
+- Examine the entire image from top to bottom
+- Read all visible text, including small text and numbers
+- Look for question numbers, multiple choice options, equations, tables
+- Pay special attention to mathematical formulas, code, and technical terms
+
+QUESTION IDENTIFICATION:
+- Look for questions that ask "What is...", "Calculate...", "Choose the correct...", etc.
+- Find multiple choice options labeled (a), (b), (c), (d) or A, B, C, D
+- Identify fill-in-the-blank spaces or missing values
+- Look for True/False questions
+
+ANSWER FORMAT (CRITICAL):
+- Multiple Choice Questions: Answer ONLY with the letter (A, B, C, D)
+- Calculations: Give ONLY the numerical result
+- Fill-in-blanks: Give ONLY the missing word/phrase  
+- True/False: Answer ONLY "True" or "False"
+- If multiple questions, number them: 1. A  2. B  3. 42
+
+ACCURACY RULES:
+- Double-check any calculations you see
+- For technical subjects, use proper formulas and methods
+- If text is unclear, analyze the context to make the best determination
+- Never guess randomly - use academic knowledge to deduce answers
+
+DO NOT:
+- Explain your reasoning or show work
+- Ask for clarification or more information
+- Describe what you see in the image
+- Give multiple possible answers
+
+ANALYZE THE SCREENSHOT AND PROVIDE DIRECT ANSWERS:`;
+  }
+
+  static getVerificationPrompt(originalAnswer, questionContext) {
+    return `The original answer was: "${originalAnswer}"
+
+Simply respond with ONLY:
+- If correct: "VERIFIED: ${originalAnswer}"  
+- If incorrect: Just the correct answer (A, B, C, D, or number)
+
+No explanations. No questions. Just verify or correct.`;
+  }
+
+  static getConfidenceAnalysisPrompt(answer) {
+    return `Analyze the confidence level of this academic answer and determine if it meets publication standards.
+
+ANSWER TO EVALUATE:
+${answer}
+
+CONFIDENCE CRITERIA:
+- Factual accuracy and verifiability
+- Methodological soundness
+- Completeness of response
+- Clarity and precision
+- Absence of ambiguity
+
+SCORING SYSTEM:
+- 95-100%: Publication ready, highly confident
+- 85-94%: Good quality, minor uncertainty
+- 70-84%: Moderate confidence, some concerns
+- Below 70%: Low confidence, needs review
+
+Provide:
+1. Confidence percentage (0-100%)
+2. Specific strengths identified
+3. Any concerns or weaknesses
+4. Recommendation (ACCEPT/REVISE/REJECT)
+
+Format: CONFIDENCE: [X]% | RECOMMENDATION: [STATUS] | ANALYSIS: [details]`;
+  }
+}
+
 // AI Provider Handlers
 class AIProviders {
   static async callDeepSeek(apiKey, imageBase64) {
@@ -123,6 +201,7 @@ class AIProviders {
   }
 
   static async callGroq(apiKey, imageBase64) {
+    // First pass - Initial analysis with enhanced prompt
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -137,18 +216,18 @@ class AIProviders {
             content: [
               {
                 type: "text",
-                text: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+                text: PromptEngine.getEnhancedPrompt()
               },
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
+                  url: `data:image/png;base64,${imageBase64}`
                 }
               }
             ]
           }
         ],
-        max_tokens: 500
+        max_tokens: 1000
       })
     });
 
@@ -158,7 +237,9 @@ class AIProviders {
     }
 
     const result = await response.json();
-    return result.choices[0].message.content;
+    const initialAnswer = result.choices[0].message.content;
+
+        // Skip verification for now to avoid confusion    return initialAnswer;
   }
 
   static async callHuggingFace(apiKey, imageBase64) {
@@ -171,7 +252,7 @@ class AIProviders {
       body: JSON.stringify({
         inputs: {
           image: imageBase64,
-          question: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+          question: PromptEngine.getEnhancedPrompt()
         }
       })
     });
@@ -197,7 +278,9 @@ class AIProviders {
         version: "yorickvp/llava-13b:b5f6212d032508382d61ff00469ddda3e32fd8a0e75dc39d8a4191bb742157fb",
         input: {
           image: `data:image/jpeg;base64,${imageBase64}`,
-          prompt: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+          prompt: PromptEngine.getEnhancedPrompt(),
+          temperature: 0.1,
+          max_length: 1000
         }
       })
     });
@@ -245,7 +328,7 @@ class AIProviders {
             content: [
               {
                 type: "text",
-                text: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+                text: PromptEngine.getEnhancedPrompt()
               },
               {
                 type: "image_url",
@@ -256,7 +339,8 @@ class AIProviders {
             ]
           }
         ],
-        max_tokens: 500
+        max_tokens: 1000,
+        temperature: 0.1
       })
     });
 
@@ -284,7 +368,7 @@ class AIProviders {
             content: [
               {
                 type: "text",
-                text: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+                text: PromptEngine.getEnhancedPrompt()
               },
               {
                 type: "image_url",
@@ -295,7 +379,8 @@ class AIProviders {
             ]
           }
         ],
-        max_tokens: 500
+        max_tokens: 1000,
+        temperature: 0.1
       })
     });
 
@@ -324,6 +409,7 @@ class AIProviders {
       try {
         const currentKey = geminiRotator.getNextKey();
         
+        // First pass - Enhanced analysis
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentKey}`, {
           method: 'POST',
           headers: {
@@ -333,16 +419,20 @@ class AIProviders {
             contents: [{
               parts: [
                 {
-                  text: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+                  text: PromptEngine.getEnhancedPrompt()
                 },
                 {
                   inline_data: {
-                    mime_type: "image/jpeg",
+                    mime_type: "image/png",
                     data: imageBase64
                   }
                 }
               ]
-            }]
+            }],
+            generationConfig: {
+              temperature: 0.1, // Lower temperature for more focused, accurate responses
+              maxOutputTokens: 1000
+            }
           })
         });
 
@@ -362,12 +452,14 @@ class AIProviders {
         }
 
         const result = await response.json();
-        const text = result.candidates[0].content.parts[0].text;
+        const initialAnswer = result.candidates[0].content.parts[0].text;
+        
+        // Skip verification for now to avoid confusion
         
         // Mark key as working on success
         geminiRotator.markKeyWorking(currentKey);
         
-        return text;
+        return initialAnswer;
         
       } catch (error) {
         lastError = error;
@@ -384,6 +476,7 @@ class AIProviders {
   }
 
   static async callOpenAI(apiKey, imageBase64) {
+    // First pass - Enhanced analysis
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -391,14 +484,14 @@ class AIProviders {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4-vision-preview",
+        model: "gpt-4o", // Updated to latest model
         messages: [
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+                text: PromptEngine.getEnhancedPrompt()
               },
               {
                 type: "image_url",
@@ -409,7 +502,8 @@ class AIProviders {
             ]
           }
         ],
-        max_tokens: 500
+        max_tokens: 1000,
+        temperature: 0.1 // Lower temperature for accuracy
       })
     });
 
@@ -419,10 +513,54 @@ class AIProviders {
     }
 
     const result = await response.json();
-    return result.choices[0].message.content;
+    const initialAnswer = result.choices[0].message.content;
+
+    // Second pass - Verification
+    try {
+      const verificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: PromptEngine.getVerificationPrompt(initialAnswer, "Based on the screenshot analysis")
+                }
+              ]
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.05
+        })
+      });
+
+      if (verificationResponse.ok) {
+        const verificationResult = await verificationResponse.json();
+        const verifiedAnswer = verificationResult.choices[0].message.content;
+        
+        // If verification suggests improvements, use the verified version
+        if (verifiedAnswer.includes('VERIFIED:')) {
+          return verifiedAnswer.replace('VERIFIED:', '').trim();
+        } else if (!verifiedAnswer.includes('UNCERTAIN:')) {
+          return verifiedAnswer;
+        }
+      }
+    } catch (verificationError) {
+      console.log('OpenAI verification pass failed, using initial answer:', verificationError.message);
+    }
+
+    return initialAnswer;
   }
 
   static async callClaude(apiKey, imageBase64) {
+    // First pass - Enhanced analysis
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -431,8 +569,9 @@ class AIProviders {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: "claude-3-sonnet-20240229",
-        max_tokens: 500,
+        model: "claude-3-5-sonnet-20241022", // Updated to latest model
+        max_tokens: 1000,
+        temperature: 0.1,
         messages: [
           {
             role: "user",
@@ -441,13 +580,13 @@ class AIProviders {
                 type: "image",
                 source: {
                   type: "base64",
-                  media_type: "image/jpeg",
+                  media_type: "image/png",
                   data: imageBase64
                 }
               },
               {
                 type: "text",
-                text: "You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown."
+                text: PromptEngine.getEnhancedPrompt()
               }
             ]
           }
@@ -461,7 +600,51 @@ class AIProviders {
     }
 
     const result = await response.json();
-    return result.content[0].text;
+    const initialAnswer = result.content[0].text;
+
+    // Second pass - Verification
+    try {
+      const verificationResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 800,
+          temperature: 0.05,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: PromptEngine.getVerificationPrompt(initialAnswer, "Based on the screenshot analysis")
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+      if (verificationResponse.ok) {
+        const verificationResult = await verificationResponse.json();
+        const verifiedAnswer = verificationResult.content[0].text;
+        
+        // If verification suggests improvements, use the verified version
+        if (verifiedAnswer.includes('VERIFIED:')) {
+          return verifiedAnswer.replace('VERIFIED:', '').trim();
+        } else if (!verifiedAnswer.includes('UNCERTAIN:')) {
+          return verifiedAnswer;
+        }
+      }
+    } catch (verificationError) {
+      console.log('Claude verification pass failed, using initial answer:', verificationError.message);
+    }
+
+    return initialAnswer;
   }
 
   static async callOllama(baseUrl, model, imageBase64) {
@@ -472,9 +655,13 @@ class AIProviders {
       },
       body: JSON.stringify({
         model: model || 'llava',
-        prompt: 'You are an AI assistant that helps students with their academic questions. Look at this screenshot and identify any questions, MCQs, fill-in-the-blanks, or problems that need to be solved. Provide direct, concise answers only. For MCQs, give the correct option (A, B, C, D, etc.). For fill-in-the-blanks, provide the missing word/phrase. For short questions, give brief one-sentence answers. For coding questions, provide the solution code. Do NOT describe what you see - only provide the answers to the questions shown.',
+        prompt: PromptEngine.getEnhancedPrompt(),
         images: [imageBase64],
-        stream: false
+        stream: false,
+        options: {
+          temperature: 0.1,
+          num_predict: 1000
+        }
       })
     });
 
@@ -488,7 +675,196 @@ class AIProviders {
   }
 }
 
-// Multi-provider analyze endpoint
+// Enhanced answer processing with confidence scoring
+class AnswerProcessor {
+  static async processWithConfidenceCheck(provider, apiKey, image, baseUrl, model) {
+    let answer;
+    let confidence = 0;
+    let attempts = 0;
+    const maxAttempts = 2; // Allow one retry for low confidence
+
+    while (attempts < maxAttempts && confidence < 85) {
+      attempts++;
+      console.log(`� Attempt ${attempts} for ${provider.toUpperCase()}`);
+
+      // Get initial answer
+      switch (provider.toLowerCase()) {
+        case 'deepseek':
+          answer = await AIProviders.callDeepSeek(apiKey, image);
+          break;
+        case 'groq':
+          answer = await AIProviders.callGroq(apiKey, image);
+          break;
+        case 'huggingface':
+          answer = await AIProviders.callHuggingFace(apiKey, image);
+          break;
+        case 'replicate':
+          answer = await AIProviders.callReplicate(apiKey, image);
+          break;
+        case 'perplexity':
+          answer = await AIProviders.callPerplexity(apiKey, image);
+          break;
+        case 'mistral':
+          answer = await AIProviders.callMistral(apiKey, image);
+          break;
+        case 'gemini':
+          answer = await AIProviders.callGemini(apiKey, image);
+          break;
+        case 'openai':
+          answer = await AIProviders.callOpenAI(apiKey, image);
+          break;
+        case 'claude':
+          answer = await AIProviders.callClaude(apiKey, image);
+          break;
+        case 'ollama':
+          answer = await AIProviders.callOllama(baseUrl || 'http://localhost:11434', model, image);
+          break;
+        default:
+          throw new Error(`Unsupported provider: ${provider}`);
+      }
+
+      // Check confidence for providers that support it
+      if (['gemini', 'openai', 'claude'].includes(provider.toLowerCase())) {
+        try {
+          confidence = await this.getConfidenceScore(provider, apiKey, answer);
+          console.log(`📊 Confidence score: ${confidence}%`);
+          
+          if (confidence < 85 && attempts < maxAttempts) {
+            console.log(`⚠️ Low confidence (${confidence}%), retrying...`);
+            continue;
+          }
+        } catch (confidenceError) {
+          console.log('Confidence check failed, using answer as-is:', confidenceError.message);
+          confidence = 75; // Default moderate confidence
+          break;
+        }
+      } else {
+        confidence = 80; // Default confidence for other providers
+        break;
+      }
+    }
+
+    return {
+      answer,
+      confidence,
+      attempts,
+      qualityScore: this.calculateQualityScore(answer, confidence)
+    };
+  }
+
+  static async getConfidenceScore(provider, apiKey, answer) {
+    const confidencePrompt = PromptEngine.getConfidenceAnalysisPrompt(answer);
+    
+    try {
+      let response;
+      
+      switch (provider.toLowerCase()) {
+        case 'gemini':
+          const currentKey = geminiRotator.getNextKey();
+          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: confidencePrompt }] }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 500 }
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            const analysis = result.candidates[0].content.parts[0].text;
+            return this.extractConfidence(analysis);
+          }
+          break;
+
+        case 'openai':
+          response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [{ role: "user", content: confidencePrompt }],
+              max_tokens: 500,
+              temperature: 0.1
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            const analysis = result.choices[0].message.content;
+            return this.extractConfidence(analysis);
+          }
+          break;
+
+        case 'claude':
+          response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': apiKey,
+              'Content-Type': 'application/json',
+              'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+              model: "claude-3-5-sonnet-20241022",
+              max_tokens: 500,
+              temperature: 0.1,
+              messages: [{ role: "user", content: confidencePrompt }]
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            const analysis = result.content[0].text;
+            return this.extractConfidence(analysis);
+          }
+          break;
+      }
+    } catch (error) {
+      console.log('Confidence analysis failed:', error.message);
+    }
+    
+    return 75; // Default confidence if analysis fails
+  }
+
+  static extractConfidence(analysisText) {
+    // Extract confidence percentage from analysis text
+    const confidenceMatch = analysisText.match(/CONFIDENCE:\s*(\d+)%/i);
+    if (confidenceMatch) {
+      return parseInt(confidenceMatch[1]);
+    }
+    
+    // Fallback pattern matching
+    const percentMatch = analysisText.match(/(\d+)%/);
+    if (percentMatch) {
+      return parseInt(percentMatch[1]);
+    }
+    
+    return 75; // Default if no percentage found
+  }
+
+  static calculateQualityScore(answer, confidence) {
+    let score = confidence;
+    
+    // Bonus points for structured answers
+    if (answer.includes('\n') || answer.length > 50) score += 5;
+    
+    // Bonus for specific formatting (MCQ answers, numbers, etc.)
+    if (/^[A-E]\.?\s*$/.test(answer.trim())) score += 10; // MCQ format
+    if (/\d+/.test(answer)) score += 5; // Contains numbers
+    
+    // Penalty for vague language
+    if (answer.includes('might') || answer.includes('possibly') || answer.includes('unclear')) {
+      score -= 10;
+    }
+    
+    return Math.min(100, Math.max(0, score));
+  }
+}
+
+// Multi-provider analyze endpoint with enhanced processing
 app.post('/analyze', async (req, res) => {
   console.log('📸 Multi-AI API request received');
   
@@ -517,65 +893,26 @@ app.post('/analyze', async (req, res) => {
   
   try {
     const startTime = Date.now();
-    console.log(`📊 Processing image with ${provider.toUpperCase()}...`);
+    console.log(`📊 Processing image with enhanced analysis using ${provider.toUpperCase()}...`);
     
-    let answer;
-    
-    switch (provider.toLowerCase()) {
-      case 'deepseek':
-        answer = await AIProviders.callDeepSeek(apiKey, image);
-        break;
-      
-      case 'groq':
-        answer = await AIProviders.callGroq(apiKey, image);
-        break;
-      
-      case 'huggingface':
-        answer = await AIProviders.callHuggingFace(apiKey, image);
-        break;
-      
-      case 'replicate':
-        answer = await AIProviders.callReplicate(apiKey, image);
-        break;
-      
-      case 'perplexity':
-        answer = await AIProviders.callPerplexity(apiKey, image);
-        break;
-      
-      case 'mistral':
-        answer = await AIProviders.callMistral(apiKey, image);
-        break;
-      
-      case 'gemini':
-        answer = await AIProviders.callGemini(apiKey, image);
-        break;
-      
-      case 'openai':
-        answer = await AIProviders.callOpenAI(apiKey, image);
-        break;
-      
-      case 'claude':
-        answer = await AIProviders.callClaude(apiKey, image);
-        break;
-      
-      case 'ollama':
-        answer = await AIProviders.callOllama(baseUrl || 'http://localhost:11434', model, image);
-        break;
-      
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
+    const result = await AnswerProcessor.processWithConfidenceCheck(
+      provider, apiKey, image, baseUrl, model
+    );
 
     stats.successfulRequests++;
     stats.providers[provider].successes++;
     
-    console.log(`✅ ${provider.toUpperCase()} response received`);
+    console.log(`✅ ${provider.toUpperCase()} response: Quality ${result.qualityScore}%, Confidence ${result.confidence}%`);
     
     res.json({ 
-      answer,
+      answer: result.answer,
       provider,
       model: model || 'default',
-      processingTime: Date.now() - startTime
+      processingTime: Date.now() - startTime,
+      confidence: result.confidence,
+      qualityScore: result.qualityScore,
+      attempts: result.attempts,
+      enhanced: true
     });
 
   } catch (error) {
