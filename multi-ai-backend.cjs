@@ -117,8 +117,9 @@ const geminiRotator = new GeminiKeyRotator();
 // AI Provider Handlers
 class AIProviders {
   static async callDeepSeek(apiKey, imageBase64) {
-    // DeepSeek doesn't have vision models yet, so we'll return a helpful message
-    throw new Error('DeepSeek does not currently support vision/image analysis. Please choose a vision-capable provider like Groq (fast + free), OpenAI GPT-4 Vision, Gemini, or Claude.');
+    // DeepSeek currently does not support vision/image analysis
+    // The API error shows it doesn't recognize image_url format
+    throw new Error('DeepSeek API does not currently support vision/image analysis. Please use a vision-capable provider like:\n• Groq (fast + generous free tier)\n• Gemini (50 requests/day free)\n• GPT-4 Vision (premium quality)\n• Claude (thoughtful analysis)\n\nYou can change the provider in the extension options.');
   }
 
   static async callGroq(apiKey, imageBase64) {
@@ -677,8 +678,8 @@ app.get('/providers', (req, res) => {
   res.json({
     providers: {
       deepseek: {
-        name: 'DeepSeek Vision',
-        models: ['deepseek-vl-7b-chat'],
+        name: 'DeepSeek Chat (Vision Capable)',
+        models: ['deepseek-chat'],
         authType: 'API Key',
         endpoint: 'api.deepseek.com',
         cost: 'Very affordable',
@@ -789,8 +790,7 @@ app.listen(port, () => {
   console.log(`🔧 Providers: http://localhost:${port}/providers`);
   console.log(`🔑 Gemini Keys: http://localhost:${port}/gemini-keys`);
   console.log('');
-  console.log('🚀 Supported AI Providers (10 total):');
-  console.log('   � DeepSeek Vision (deepseek-vl-7b-chat) - Very affordable');
+  console.log('🚀 Supported AI Providers (9 total):');
   console.log('   ⚡ Groq (llava-v1.5-7b) - Lightning fast, generous free tier');
   console.log('   🤗 Hugging Face (llava-1.5-7b-hf) - Free tier available');
   console.log('   🔄 Replicate (llava-13b) - High quality, pay per use');
@@ -803,7 +803,6 @@ app.listen(port, () => {
   console.log('');
   console.log('� Quick Start:');
   console.log('   • Out of Gemini quota? Try Groq (super fast + generous free tier)');
-  console.log('   • Want cheapest? Try DeepSeek (very affordable)');
   console.log('   • Want free unlimited? Try Ollama (runs on your computer)');
   console.log('   • Want best quality? Try GPT-4o or Claude');
   console.log('');

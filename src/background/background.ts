@@ -83,7 +83,7 @@ async function handleScreenshotCapture(tabId?: number): Promise<ResponseMessage>
     }
 
     // Check if API key is required for the selected provider
-    const providersRequiringApiKey = ['deepseek', 'groq', 'huggingface', 'replicate', 'perplexity', 'mistral', 'gemini', 'openai', 'claude'];
+    const providersRequiringApiKey = ['groq', 'huggingface', 'replicate', 'perplexity', 'mistral', 'gemini', 'openai', 'claude'];
     if (providersRequiringApiKey.includes(settings.provider) && !settings.apiKey) {
       throw new Error(`Please configure API key for ${settings.provider} in extension options`);
     }
