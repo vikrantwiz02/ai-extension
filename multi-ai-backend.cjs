@@ -14,16 +14,7 @@ const stats = {
   failedRequests: 0,
   startTime: new Date(),
   providers: {
-    deepseek: { requests: 0, successes: 0, failures: 0 },
-    groq: { requests: 0, successes: 0, failures: 0 },
-    huggingface: { requests: 0, successes: 0, failures: 0 },
-    replicate: { requests: 0, successes: 0, failures: 0 },
-    perplexity: { requests: 0, successes: 0, failures: 0 },
-  mistral: { requests: 0, successes: 0, failures: 0 },
-    gemini: { requests: 0, successes: 0, failures: 0 },
-    openai: { requests: 0, successes: 0, failures: 0 },
-    claude: { requests: 0, successes: 0, failures: 0 },
-    ollama: { requests: 0, successes: 0, failures: 0 }
+    gemini: { requests: 0, successes: 0, failures: 0 }
   }
 };
 
@@ -194,213 +185,6 @@ Format: CONFIDENCE: [X]% | RECOMMENDATION: [STATUS] | ANALYSIS: [details]`;
 
 // AI Provider Handlers
 class AIProviders {
-  static async callDeepSeek(apiKey, imageBase64) {
-    // DeepSeek's vision capabilities are still in development
-    // Their API format is different from OpenAI standard
-    throw new Error(`DeepSeek Vision is not yet available through their public API. 
-
-🔥 Try these excellent alternatives:
-• Groq (Fast + Free) - Great for quick answers
-• Gemini (50 free/day) - Google's reliable AI  
-• GPT-4o (Premium) - Highest accuracy
-• Claude (Premium) - Thoughtful analysis
-
-You can change the provider in extension options.`);
-  }
-
-  static async callGroq(apiKey, imageBase64) {
-    // First pass - Initial analysis with enhanced prompt
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "llava-v1.5-7b-4096-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: PromptEngine.getEnhancedPrompt()
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/png;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Groq API error: ${response.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json();
-    const initialAnswer = result.choices[0].message.content;
-
-        // Skip verification for now to avoid confusion    return initialAnswer;
-  }
-
-  static async callHuggingFace(apiKey, imageBase64) {
-    const response = await fetch('https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: {
-          image: imageBase64,
-          question: PromptEngine.getEnhancedPrompt()
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Hugging Face API error: ${response.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json();
-    return result[0]?.generated_text || 'No response generated';
-  }
-
-  static async callReplicate(apiKey, imageBase64) {
-    // First, create a prediction
-    const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version: "yorickvp/llava-13b:b5f6212d032508382d61ff00469ddda3e32fd8a0e75dc39d8a4191bb742157fb",
-        input: {
-          image: `data:image/jpeg;base64,${imageBase64}`,
-          prompt: PromptEngine.getEnhancedPrompt(),
-          temperature: 0.1,
-          max_length: 1000
-        }
-      })
-    });
-
-    if (!createResponse.ok) {
-      const errorData = await createResponse.json();
-      throw new Error(`Replicate API error: ${createResponse.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const prediction = await createResponse.json();
-    
-    // Poll for result
-    let result = prediction;
-    while (result.status === 'starting' || result.status === 'processing') {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-        }
-      });
-      
-      result = await pollResponse.json();
-    }
-
-    if (result.status === 'failed') {
-      throw new Error(`Replicate prediction failed: ${result.error}`);
-    }
-
-    return result.output?.join('') || 'No response generated';
-  }
-
-  static async callPerplexity(apiKey, imageBase64) {
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "sonar-pro",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: PromptEngine.getEnhancedPrompt()
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Perplexity API error: ${response.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json();
-    return result.choices[0].message.content;
-  }
-
-  static async callMistral(apiKey, imageBase64) {
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "pixtral-12b-2409",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: PromptEngine.getEnhancedPrompt()
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.1
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Mistral API error: ${response.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json();
-    return result.choices[0].message.content;
-  }
-
   static async callGemini(apiKey, imageBase64) {
     // Handle multiple API keys (comma-separated string or single key)
     if (apiKey.includes(',')) {
@@ -418,7 +202,7 @@ You can change the provider in extension options.`);
         const currentKey = geminiRotator.getNextKey();
         
         // First pass - Enhanced analysis
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${currentKey}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -482,205 +266,6 @@ You can change the provider in extension options.`);
     // If all attempts failed, throw the last error
     throw lastError || new Error('All Gemini API attempts failed');
   }
-
-  static async callOpenAI(apiKey, imageBase64) {
-    // First pass - Enhanced analysis
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "gpt-4o", // Updated to latest model
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: PromptEngine.getEnhancedPrompt()
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.1 // Lower temperature for accuracy
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`OpenAI API error: ${response.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json();
-    const initialAnswer = result.choices[0].message.content;
-
-    // Second pass - Verification
-    try {
-      const verificationResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: PromptEngine.getVerificationPrompt(initialAnswer, "Based on the screenshot analysis")
-                }
-              ]
-            }
-          ],
-          max_tokens: 800,
-          temperature: 0.05
-        })
-      });
-
-      if (verificationResponse.ok) {
-        const verificationResult = await verificationResponse.json();
-        const verifiedAnswer = verificationResult.choices[0].message.content;
-        
-        // If verification suggests improvements, use the verified version
-        if (verifiedAnswer.includes('VERIFIED:')) {
-          return verifiedAnswer.replace('VERIFIED:', '').trim();
-        } else if (!verifiedAnswer.includes('UNCERTAIN:')) {
-          return verifiedAnswer;
-        }
-      }
-    } catch (verificationError) {
-      console.log('OpenAI verification pass failed, using initial answer:', verificationError.message);
-    }
-
-    return initialAnswer;
-  }
-
-  static async callClaude(apiKey, imageBase64) {
-    // First pass - Enhanced analysis
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022", // Updated to latest model
-        max_tokens: 1000,
-        temperature: 0.1,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: "image/png",
-                  data: imageBase64
-                }
-              },
-              {
-                type: "text",
-                text: PromptEngine.getEnhancedPrompt()
-              }
-            ]
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Claude API error: ${response.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json();
-    const initialAnswer = result.content[0].text;
-
-    // Second pass - Verification
-    try {
-      const verificationResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 800,
-          temperature: 0.05,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: PromptEngine.getVerificationPrompt(initialAnswer, "Based on the screenshot analysis")
-                }
-              ]
-            }
-          ]
-        })
-      });
-
-      if (verificationResponse.ok) {
-        const verificationResult = await verificationResponse.json();
-        const verifiedAnswer = verificationResult.content[0].text;
-        
-        // If verification suggests improvements, use the verified version
-        if (verifiedAnswer.includes('VERIFIED:')) {
-          return verifiedAnswer.replace('VERIFIED:', '').trim();
-        } else if (!verifiedAnswer.includes('UNCERTAIN:')) {
-          return verifiedAnswer;
-        }
-      }
-    } catch (verificationError) {
-      console.log('Claude verification pass failed, using initial answer:', verificationError.message);
-    }
-
-    return initialAnswer;
-  }
-
-  static async callOllama(baseUrl, model, imageBase64) {
-    const response = await fetch(`${baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model || 'llava',
-        prompt: PromptEngine.getEnhancedPrompt(),
-        images: [imageBase64],
-        stream: false,
-        options: {
-          temperature: 0.1,
-          num_predict: 1000
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Ollama API error: ${response.status} ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json();
-    return result.response;
-  }
 }
 
 // Enhanced answer processing with confidence scoring
@@ -697,42 +282,15 @@ class AnswerProcessor {
 
       // Get initial answer
       switch (provider.toLowerCase()) {
-        case 'deepseek':
-          answer = await AIProviders.callDeepSeek(apiKey, image);
-          break;
-        case 'groq':
-          answer = await AIProviders.callGroq(apiKey, image);
-          break;
-        case 'huggingface':
-          answer = await AIProviders.callHuggingFace(apiKey, image);
-          break;
-        case 'replicate':
-          answer = await AIProviders.callReplicate(apiKey, image);
-          break;
-        case 'perplexity':
-          answer = await AIProviders.callPerplexity(apiKey, image);
-          break;
-        case 'mistral':
-          answer = await AIProviders.callMistral(apiKey, image);
-          break;
         case 'gemini':
           answer = await AIProviders.callGemini(apiKey, image);
-          break;
-        case 'openai':
-          answer = await AIProviders.callOpenAI(apiKey, image);
-          break;
-        case 'claude':
-          answer = await AIProviders.callClaude(apiKey, image);
-          break;
-        case 'ollama':
-          answer = await AIProviders.callOllama(baseUrl || 'http://localhost:11434', model, image);
           break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
 
       // Check confidence for providers that support it
-      if (['gemini', 'openai', 'claude'].includes(provider.toLowerCase())) {
+      if (['gemini'].includes(provider.toLowerCase())) {
         try {
           confidence = await this.getConfidenceScore(provider, apiKey, answer);
           console.log(`📊 Confidence score: ${confidence}%`);
@@ -769,7 +327,7 @@ class AnswerProcessor {
       switch (provider.toLowerCase()) {
         case 'gemini':
           const currentKey = geminiRotator.getNextKey();
-          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentKey}`, {
+          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${currentKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -781,51 +339,6 @@ class AnswerProcessor {
           if (response.ok) {
             const result = await response.json();
             const analysis = result.candidates[0].content.parts[0].text;
-            return this.extractConfidence(analysis);
-          }
-          break;
-
-        case 'openai':
-          response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: "gpt-4o",
-              messages: [{ role: "user", content: confidencePrompt }],
-              max_tokens: 500,
-              temperature: 0.1
-            })
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            const analysis = result.choices[0].message.content;
-            return this.extractConfidence(analysis);
-          }
-          break;
-
-        case 'claude':
-          response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-              'Content-Type': 'application/json',
-              'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-              model: "claude-3-5-sonnet-20241022",
-              max_tokens: 500,
-              temperature: 0.1,
-              messages: [{ role: "user", content: confidencePrompt }]
-            })
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            const analysis = result.content[0].text;
             return this.extractConfidence(analysis);
           }
           break;
@@ -886,15 +399,8 @@ app.post('/analyze', async (req, res) => {
     });
   }
 
-  // Get API key from headers
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ 
-      error: 'Missing or invalid Authorization header' 
-    });
-  }
-
-  const apiKey = authHeader.substring(7);
+  // Hardcoded Gemini API key
+  const apiKey = '';
   console.log(`🔑 Using ${provider.toUpperCase()} API Key:`, apiKey.substring(0, 10) + '...');
   
   stats.providers[provider].requests++;
@@ -939,54 +445,10 @@ app.post('/analyze', async (req, res) => {
 
 function getErrorSuggestion(provider, errorMessage) {
   const suggestions = {
-    deepseek: {
-      '429': 'DeepSeek API rate limit exceeded. Check your plan.',
-      '401': 'Invalid DeepSeek API key.',
-      '400': 'Invalid request format for DeepSeek API.'
-    },
-    groq: {
-      '429': 'Groq API rate limit exceeded. Very generous free tier available.',
-      '401': 'Invalid Groq API key.',
-      '400': 'Invalid request format for Groq API.'
-    },
-    huggingface: {
-      '429': 'Hugging Face rate limit exceeded. Try again later.',
-      '401': 'Invalid Hugging Face API key.',
-      '503': 'Model is loading. Wait a few seconds and retry.'
-    },
-    replicate: {
-      '429': 'Replicate rate limit exceeded.',
-      '401': 'Invalid Replicate API key.',
-      '402': 'Replicate billing issue - check your account.'
-    },
-    perplexity: {
-      '429': 'Perplexity API rate limit exceeded.',
-      '401': 'Invalid Perplexity API key.',
-      '400': 'Invalid request format for Perplexity API.'
-    },
-    mistral: {
-      '429': 'Mistral API rate limit exceeded.',
-      '401': 'Invalid Mistral API key.',
-      '400': 'Invalid request format for Mistral API.'
-    },
     gemini: {
       '429': 'Gemini API quota exceeded. Wait for reset or upgrade to paid plan.',
       '403': 'Invalid Gemini API key or insufficient permissions.',
       '400': 'Invalid request format for Gemini API.'
-    },
-    openai: {
-      '429': 'OpenAI API rate limit exceeded. Wait or upgrade plan.',
-      '401': 'Invalid OpenAI API key.',
-      '402': 'OpenAI billing issue - check your account.'
-    },
-    claude: {
-      '429': 'Claude API rate limit exceeded.',
-      '401': 'Invalid Claude API key.',
-      '400': 'Invalid request format for Claude API.'
-    },
-    ollama: {
-      'ECONNREFUSED': 'Ollama server not running. Start with: ollama serve',
-      '404': 'Model not found. Pull with: ollama pull llava'
     }
   };
 
@@ -1006,7 +468,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     uptime: Math.floor((Date.now() - stats.startTime) / 1000) + 's',
-    supportedProviders: ['deepseek', 'groq', 'gemini', 'openai', 'claude', 'ollama']
+    supportedProviders: ['gemini']
   });
 });
 
@@ -1022,85 +484,13 @@ app.get('/stats', (req, res) => {
 app.get('/providers', (req, res) => {
   res.json({
     providers: {
-      deepseek: {
-        name: 'DeepSeek Vision (Affordable)',
-        models: ['deepseek-vl-7b-chat'],
-        authType: 'API Key',
-        endpoint: 'api.deepseek.com',
-        cost: 'Very affordable',
-        speed: 'Fast'
-      },
-      groq: {
-        name: 'Groq (Lightning Fast)',
-        models: ['llava-v1.5-7b-4096-preview'],
-        authType: 'API Key',
-        endpoint: 'api.groq.com',
-        cost: 'Generous free tier',
-        speed: 'Ultra fast'
-      },
-      huggingface: {
-        name: 'Hugging Face',
-        models: ['llava-1.5-7b-hf'],
-        authType: 'API Key',
-        endpoint: 'api-inference.huggingface.co',
-        cost: 'Free tier available',
-        speed: 'Medium'
-      },
-      replicate: {
-        name: 'Replicate',
-        models: ['llava-13b'],
-        authType: 'API Key',
-        endpoint: 'api.replicate.com',
-        cost: 'Pay per use',
-        speed: 'Medium (high quality)'
-      },
-      perplexity: {
-        name: 'Perplexity AI',
-        models: ['sonar-pro', 'sonar'],
-        authType: 'API Key',
-        endpoint: 'api.perplexity.ai',
-        cost: 'Paid',
-        speed: 'Fast'
-      },
-      mistral: {
-        name: 'Mistral Pixtral',
-        models: ['pixtral-12b-2409'],
-        authType: 'API Key',
-        endpoint: 'api.mistral.ai',
-        cost: 'Competitive pricing',
-        speed: 'Fast'
-      },
       gemini: {
-        name: 'Google Gemini',
-        models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'],
+        name: 'Google Gemini 2.0 Flash',
+        models: ['gemini-2.0-flash'],
         authType: 'API Key',
         endpoint: 'generativelanguage.googleapis.com',
-        cost: '50 free/day',
+        cost: 'Free tier available',
         speed: 'Fast'
-      },
-      openai: {
-        name: 'OpenAI GPT-4 Vision',
-        models: ['gpt-4-vision-preview', 'gpt-4o'],
-        authType: 'Bearer Token',
-        endpoint: 'api.openai.com',
-        cost: 'Premium pricing',
-        speed: 'Medium (high quality)'
-      },
-      claude: {
-        name: 'Anthropic Claude',
-        models: ['claude-3-sonnet-20240229', 'claude-3-opus-20240229'],
-        authType: 'API Key',
-        endpoint: 'api.anthropic.com',
-        cost: 'Premium pricing',
-        speed: 'Medium (thoughtful)'
-      },
-      ollama: {
-        name: 'Ollama (Local)',
-        models: ['llava', 'llava:13b', 'bakllava'],
-        authType: 'None (Local)',
-        endpoint: 'localhost:11434',
-        cost: 'Free (local)',
-        speed: 'Depends on hardware'
       }
     }
   });
@@ -1126,8 +516,8 @@ app.get('/gemini-keys', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log('🤖 Universal AI Screenshot Analysis Backend');
-  console.log('==========================================');
+  console.log('🤖 Gemini 2.0 Flash AI Screenshot Analysis Backend');
+  console.log('===============================================');
   console.log(`📡 Server running at: http://localhost:${port}`);
   console.log(`🔗 API endpoint: http://localhost:${port}/analyze`);
   console.log(`❤️  Health check: http://localhost:${port}/health`);
@@ -1135,26 +525,17 @@ app.listen(port, () => {
   console.log(`🔧 Providers: http://localhost:${port}/providers`);
   console.log(`🔑 Gemini Keys: http://localhost:${port}/gemini-keys`);
   console.log('');
-  console.log('🚀 Supported AI Providers (10 total):');
-  console.log('   🔥 DeepSeek Vision (deepseek-vl-7b) - Very affordable, fast');
-  console.log('   ⚡ Groq (llava-v1.5-7b) - Lightning fast, generous free tier');
-  console.log('   🤗 Hugging Face (llava-1.5-7b-hf) - Free tier available');
-  console.log('   🔄 Replicate (llava-13b) - High quality, pay per use');
-  console.log('   🧠 Perplexity AI (sonar-pro) - Research focused');
-  console.log('   🎭 Mistral Pixtral (pixtral-12b-2409) - European AI');
-  console.log('   🟢 Google Gemini (gemini-1.5-flash/pro) - 50 free/day');
-  console.log('   🟡 OpenAI GPT-4 Vision (gpt-4o) - Premium quality');
-  console.log('   🔵 Anthropic Claude (claude-3-sonnet/opus) - Thoughtful analysis');
-  console.log('   🟠 Ollama Local (llava/bakllava) - Free, runs locally');
+  console.log('🚀 Supported AI Provider:');
+  console.log('   🟢 Google Gemini 2.0 Flash (gemini-2.0-flash) - Latest Google AI');
   console.log('');
-  console.log('💡 Quick Start:');
-  console.log('   • Most affordable? Try DeepSeek Vision (very cheap, good quality)');
-  console.log('   • Fastest free? Try Groq (super fast + generous free tier)');
-  console.log('   • Want free unlimited? Try Ollama (runs on your computer)');
-  console.log('   • Want best quality? Try GPT-4o or Claude');
+  console.log('💡 Features:');
+  console.log('   • Multimodal vision and text understanding');
+  console.log('   • Enhanced accuracy for academic questions');
+  console.log('   • Multiple API key rotation support');
+  console.log('   • Automatic retry on failures');
   console.log('');
   console.log('📋 Usage Example:');
-  console.log('   POST /analyze with body: { "provider": "groq", "image": "base64..." }');
+  console.log('   POST /analyze with body: { "provider": "gemini", "image": "base64..." }');
   console.log('');
-  console.log('🔑 API Key via Authorization header: Bearer YOUR_API_KEY');
+  console.log('🔑 API Key: Hardcoded in backend - no configuration needed!');
 });

@@ -347,7 +347,12 @@ class AIAssistantDot {
 
       try {
         chrome.runtime.sendMessage(
-          { type: 'CAPTURE_SCREENSHOT' },
+          { 
+            type: 'CAPTURE_SCREENSHOT',
+            // Hardcoded backend URL and provider
+            backendUrl: 'http://localhost:3002/analyze',
+            provider: 'gemini'
+          },
           (response: ResponseMessage) => {
             if (chrome.runtime.lastError) {
               // Check for specific context invalidation errors

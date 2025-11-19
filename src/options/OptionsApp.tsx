@@ -14,71 +14,8 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
   backendUrl: 'http://localhost:3002/analyze',
   jpegQuality: 80,
   provider: 'gemini',
-  model: 'gemini-2.5-pro',
+  model: 'gemini-2.0-flash',
   ollamaBaseUrl: 'http://localhost:11434'
-};
-
-const AI_PROVIDERS = {
-  deepseek: {
-    name: '🔥 DeepSeek Vision (Coming Soon)',
-    models: ['deepseek-vl-7b-chat'],
-    needsApiKey: true,
-    description: 'Vision API in development - Use Groq, Gemini, or GPT-4o for now'
-  },
-  gemini: {
-    name: '🟢 Google Gemini (Multi-Key Support)',
-    models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-2.5-pro'],
-    needsApiKey: true,
-    description: 'Google\'s multimodal AI - Use multiple API keys for increased quota (comma-separated)'
-  },
-  groq: {
-    name: '⚡ Groq (Lightning Fast)',
-    models: ['llava-v1.5-7b-4096-preview'],
-    needsApiKey: true,
-    description: 'Ultra-fast inference with generous free tier - great Gemini alternative!'
-  },
-  huggingface: {
-    name: '🤗 Hugging Face',
-    models: ['llava-1.5-7b-hf'],
-    needsApiKey: true,
-    description: 'Open source models with free tier available'
-  },
-  replicate: {
-    name: '🔄 Replicate',
-    models: ['llava-13b'],
-    needsApiKey: true,
-    description: 'High-quality models, pay per use'
-  },
-  perplexity: {
-    name: '🧠 Perplexity AI',
-    models: ['sonar-pro', 'sonar'],
-    needsApiKey: true,
-    description: 'Research-focused AI with vision capabilities'
-  },
-  mistral: {
-    name: '🎭 Mistral Pixtral',
-    models: ['pixtral-12b-2409'],
-    needsApiKey: true,
-    description: 'European AI with competitive pricing'
-  },
-  openai: {
-    name: '🟡 OpenAI GPT-4 Vision',
-    models: ['gpt-4-vision-preview', 'gpt-4o'],
-    needsApiKey: true,
-    description: 'Premium quality vision analysis'
-  },
-  claude: {
-    name: '🔵 Anthropic Claude',
-    models: ['claude-3-sonnet-20240229', 'claude-3-opus-20240229'],
-    needsApiKey: true,
-    description: 'Thoughtful, nuanced image analysis'
-  },
-  ollama: {
-    name: '🟠 Ollama (Local)',
-    models: ['llava', 'llava:13b', 'bakllava'],
-    needsApiKey: false,
-    description: 'Free unlimited usage - runs on your computer'
-  }
 };
 
 const OptionsApp: React.FC = () => {
@@ -90,10 +27,10 @@ const OptionsApp: React.FC = () => {
     // Load settings when component mounts
     chrome.storage.sync.get(DEFAULT_SETTINGS, (items) => {
       const loadedSettings = items as ExtensionSettings;
-      // Force Gemini as default if no provider is set or if it's the old default
-      if (!loadedSettings.provider || loadedSettings.provider === 'groq') {
+      // Force Gemini as default
+      if (!loadedSettings.provider || loadedSettings.provider !== 'gemini') {
         loadedSettings.provider = 'gemini';
-        loadedSettings.model = 'gemini-1.5-flash';
+        loadedSettings.model = 'gemini-2.0-flash';
       }
       setSettings(loadedSettings);
     });
@@ -181,41 +118,24 @@ const OptionsApp: React.FC = () => {
           }}>
             AI Provider
           </label>
-          <select
-            value={settings.provider}
-            onChange={(e) => {
-              handleInputChange('provider', e.target.value);
-              // Set default model for selected provider
-              const provider = AI_PROVIDERS[e.target.value as keyof typeof AI_PROVIDERS];
-              if (provider) {
-                handleInputChange('model', provider.models[0]);
-              }
-            }}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              border: '2px solid #e1e5e9',
-              borderRadius: '8px',
-              fontSize: '14px',
-              transition: 'border-color 0.2s ease',
-              boxSizing: 'border-box',
-              background: 'white'
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#667eea'}
-            onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
-          >
-            {Object.entries(AI_PROVIDERS).map(([key, provider]) => (
-              <option key={key} value={key}>
-                {provider.name}
-              </option>
-            ))}
-          </select>
+          <div style={{
+            width: '100%',
+            padding: '12px 16px',
+            border: '2px solid #e1e5e9',
+            borderRadius: '8px',
+            fontSize: '14px',
+            boxSizing: 'border-box',
+            background: '#f8f9fa',
+            color: '#666'
+          }}>
+            🟢 Google Gemini 2.0 Flash - Latest Google AI
+          </div>
           <p style={{
             margin: '4px 0 0 0',
             fontSize: '12px',
             color: '#666'
           }}>
-            {AI_PROVIDERS[settings.provider as keyof typeof AI_PROVIDERS]?.description}
+            Latest Google AI with enhanced speed and capabilities
           </p>
         </div>
 
@@ -228,9 +148,34 @@ const OptionsApp: React.FC = () => {
           }}>
             Model
           </label>
-          <select
-            value={settings.model}
-            onChange={(e) => handleInputChange('model', e.target.value)}
+          <div style={{
+            width: '100%',
+            padding: '12px 16px',
+            border: '2px solid #e1e5e9',
+            borderRadius: '8px',
+            fontSize: '14px',
+            boxSizing: 'border-box',
+            background: '#f8f9fa',
+            color: '#666'
+          }}>
+            gemini-2.0-flash
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontWeight: '500',
+            color: '#333'
+          }}>
+            Gemini API Key
+          </label>
+          <input
+            type="password"
+            value={settings.apiKey}
+            onChange={(e) => handleInputChange('apiKey', e.target.value)}
+            placeholder="Enter your Gemini API key"
             style={{
               width: '100%',
               padding: '12px 16px',
@@ -238,102 +183,23 @@ const OptionsApp: React.FC = () => {
               borderRadius: '8px',
               fontSize: '14px',
               transition: 'border-color 0.2s ease',
-              boxSizing: 'border-box',
-              background: 'white'
+              boxSizing: 'border-box'
             }}
             onFocus={(e) => e.target.style.borderColor = '#667eea'}
             onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
-          >
-            {AI_PROVIDERS[settings.provider as keyof typeof AI_PROVIDERS]?.models.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            ))}
-          </select>
+          />
+          <div style={{
+            marginTop: '8px',
+            padding: '12px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '6px',
+            fontSize: '13px',
+            color: '#666',
+            lineHeight: '1.4'
+          }}>
+            💡 <strong>Get your API key:</strong> Visit <a href="https://makersuite.google.com/app/apikey" target="_blank" style={{ color: '#667eea' }}>Google AI Studio</a> to create your free Gemini API key.
+          </div>
         </div>
-
-        {AI_PROVIDERS[settings.provider as keyof typeof AI_PROVIDERS]?.needsApiKey && (
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontWeight: '500',
-              color: '#333'
-            }}>
-              API Key{settings.provider === 'gemini' ? 's (Multiple Supported)' : ''}
-            </label>
-            <input
-              type="password"
-              value={settings.apiKey}
-              onChange={(e) => handleInputChange('apiKey', e.target.value)}
-              placeholder={settings.provider === 'gemini' 
-                ? 'Enter Gemini API keys (comma-separated for rotation): key1,key2,key3'
-                : `Enter your ${AI_PROVIDERS[settings.provider as keyof typeof AI_PROVIDERS]?.name} API key`
-              }
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e1e5e9',
-                borderRadius: '8px',
-                fontSize: '14px',
-                transition: 'border-color 0.2s ease',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
-            />
-            {settings.provider === 'gemini' && (
-              <div style={{
-                marginTop: '8px',
-                padding: '12px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '6px',
-                fontSize: '13px',
-                color: '#666',
-                lineHeight: '1.4'
-              }}>
-                💡 <strong>Pro Tip:</strong> Create multiple Gemini API keys from different Google Cloud projects or accounts to increase your daily quota from 50 to 150+ requests/day. The extension will automatically rotate between keys when one hits the limit.
-              </div>
-            )}
-          </div>
-        )}
-
-        {settings.provider === 'ollama' && (
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontWeight: '500',
-              color: '#333'
-            }}>
-              Ollama Base URL
-            </label>
-            <input
-              type="url"
-              value={settings.ollamaBaseUrl}
-              onChange={(e) => handleInputChange('ollamaBaseUrl', e.target.value)}
-              placeholder="http://localhost:11434"
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e1e5e9',
-                borderRadius: '8px',
-                fontSize: '14px',
-                transition: 'border-color 0.2s ease',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
-            />
-            <p style={{
-              margin: '4px 0 0 0',
-              fontSize: '12px',
-              color: '#666'
-            }}>
-              Make sure Ollama is running: <code>ollama serve</code>
-            </p>
-          </div>
-        )}
 
         <div style={{ marginBottom: '24px' }}>
           <label style={{

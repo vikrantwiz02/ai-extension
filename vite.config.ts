@@ -1,28 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
-import { copyFileSync } from 'fs'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    // Custom plugin to copy options.html
-    {
-      name: 'copy-options-html',
-      writeBundle() {
-        copyFileSync(
-          resolve(__dirname, 'src/options/options.html'),
-          resolve(__dirname, 'dist/options.html')
-        )
-      }
-    }
-  ],
+  plugins: [react()],
   build: {
     rollupOptions: {
       input: {
         background: resolve(__dirname, 'src/background/background.ts'),
         content: resolve(__dirname, 'src/content/content.ts'),
-        options: resolve(__dirname, 'src/options/options.tsx'),
       },
       output: {
         format: 'es',
@@ -32,9 +18,6 @@ export default defineConfig({
           }
           if (chunkInfo.name === 'content') {
             return 'content.js'
-          }
-          if (chunkInfo.name === 'options') {
-            return 'options.js'
           }
           return '[name]-[hash].js'
         },
